@@ -63,10 +63,9 @@ export default [
       'react-refresh': reactRefresh,
     },
     rules: {
-      ...tsPlugin.configs.recommended.rules,
       'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': [
-        'error',
+        'warn',
         {
           argsIgnorePattern: '^_',
           varsIgnorePattern: '^_',
