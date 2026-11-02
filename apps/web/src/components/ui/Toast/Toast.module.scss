@@ -1,0 +1,42 @@
+.viewport {
+  position: fixed;
+  bottom: calc(var(--bottom-nav-height) + var(--safe-bottom) + 12px);
+  left: var(--spacing-page);
+  right: var(--spacing-page);
+  z-index: var(--z-toast);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  outline: none;
+  max-width: 420px;
+  margin-inline: auto;
+}
+
+.root {
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-4);
+  box-shadow: var(--shadow-md);
+  border: 1px solid transparent;
+}
+
+.success {
+  background: var(--color-success);
+}
+
+.danger {
+  background: var(--color-danger);
+}
+
+.title {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: var(--text-sm);
+}
+
+.description {
+  margin-top: 4px;
+  font-size: var(--text-xs);
+  opacity: 0.9;
+}

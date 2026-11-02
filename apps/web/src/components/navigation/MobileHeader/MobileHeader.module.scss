@@ -1,0 +1,59 @@
+@use '../../../styles/breakpoints' as bp;
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-header);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+  min-height: calc(var(--nav-height) + var(--safe-top));
+  padding: var(--safe-top) var(--spacing-page) 0;
+  background: rgb(245 241 232 / 0.9);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid transparent;
+
+  &.bordered {
+    border-bottom-color: var(--color-border);
+  }
+
+  @include bp.desktop {
+    display: none;
+  }
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: var(--nav-height);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  text-decoration: none;
+  color: var(--color-foreground);
+  min-height: var(--touch-min);
+}
+
+.logo {
+  width: 32px;
+  height: 32px;
+}
+
+.name {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: var(--text-base);
+  letter-spacing: -0.02em;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}

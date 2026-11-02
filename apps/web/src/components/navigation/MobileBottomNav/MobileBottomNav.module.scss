@@ -1,0 +1,59 @@
+@use '../../../styles/breakpoints' as bp;
+
+.nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-bottom-nav);
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  min-height: calc(var(--bottom-nav-height) + var(--safe-bottom));
+  padding: 6px var(--spacing-1) calc(6px + var(--safe-bottom));
+  background: rgb(245 241 232 / 0.94);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--color-border);
+  box-shadow: 0 -4px 20px rgb(32 37 34 / 0.05);
+
+  @include bp.desktop {
+    display: none;
+  }
+}
+
+.link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: var(--touch-min);
+  color: var(--color-muted);
+  text-decoration: none;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  -webkit-tap-highlight-color: transparent;
+  border-radius: var(--radius-sm);
+
+  &:hover,
+  &:focus-visible {
+    color: var(--color-foreground);
+  }
+}
+
+.active {
+  color: var(--color-primary);
+  font-weight: 600;
+
+  .iconWrap {
+    background: rgb(38 60 50 / 0.1);
+  }
+}
+
+.iconWrap {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+}

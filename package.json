@@ -1,0 +1,25 @@
+{
+  "name": "interview-shala",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Mobile-first Voice AI Interview Preparation platform",
+  "license": "MIT",
+  "packageManager": "pnpm@10.16.1",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @interview-shala/web dev",
+    "dev:web": "pnpm --filter @interview-shala/web dev",
+    "dev:api": "cd apps/api && python -m uvicorn app.main:app --reload --port 8000",
+    "build": "pnpm --filter @interview-shala/web build",
+    "lint": "pnpm --filter @interview-shala/web lint",
+    "typecheck": "pnpm --filter @interview-shala/web typecheck",
+    "test:e2e": "pnpm --filter @interview-shala/web test:e2e",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,scss,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,scss,yml,yaml}\""
+  },
+  "devDependencies": {
+    "prettier": "^3.5.3"
+  }
+}

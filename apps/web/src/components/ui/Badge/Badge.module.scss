@@ -1,0 +1,43 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+  padding: 2px 10px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.neutral {
+  background: var(--color-background-secondary);
+  color: var(--color-foreground);
+  border: 1px solid var(--color-border);
+}
+
+.accent {
+  background: rgb(157 171 145 / 0.28);
+  color: var(--color-primary);
+}
+
+.bronze {
+  background: rgb(181 140 99 / 0.2);
+  color: #7a5530;
+}
+
+.success {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.warning {
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+}
+
+.danger {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
