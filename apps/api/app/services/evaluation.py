@@ -32,7 +32,11 @@ def evaluate_session(
     payload: PracticeSessionComplete,
 ) -> EvaluationResult:
     """Return an explicitly unevaluated result until trusted transcript scoring exists."""
-    # Resolve the enum here so invalid round types still fail at the service boundary.
-    RoundType(round_type) if not isinstance(round_type, RoundType) else round_type
+    normalized_round_type = RoundType(round_type)
     _ = payload  # Session facts are persisted by the route, never used as scores.
-    return EvaluationResult()
+    return EvaluationResult(
+        next_action=(
+            f"Your {normalized_round_type.value.replace('_', ' ')} session was saved. "
+            "Transcript-based evaluation is not available yet; no score was estimated."
+        )
+    )
