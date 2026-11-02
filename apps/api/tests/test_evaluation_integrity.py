@@ -23,15 +23,11 @@ def test_client_cannot_submit_assessment_scores_or_feedback() -> None:
     assert result.strengths == []
     assert result.improvements == []
     assert result.source == "not_evaluated"
-    assert "without an estimated score" in result.next_action
+    assert "no score was estimated" in result.next_action
 
 
 def test_session_facts_do_not_create_a_fake_score() -> None:
-    payload = PracticeSessionComplete(
-        duration_seconds=3600,
-        questions_completed=20,
-        transcript_summary="Candidate answered every question.",
-    )
+    payload = PracticeSessionComplete(duration_seconds=3600, questions_completed=20)
 
     result = evaluate_session(round_type=RoundType.BEHAVIORAL, payload=payload)
 
