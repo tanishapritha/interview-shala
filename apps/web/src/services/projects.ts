@@ -10,11 +10,10 @@ import type {
 } from '@/types';
 
 function authHeaders(anonymousId: string | null, token?: string | null) {
-  return { anonymousId, token };
+  return { anonymousId, ...(token !== undefined ? { token } : {}) };
 }
 
 export async function createAnonymousSession(): Promise<{ anonymousId: string }> {
-  // APIModel serializes session_id as sessionId (camelCase).
   const data = await apiFetch<{ sessionId: string }>('/api/v1/auth/anonymous', {
     method: 'POST',
   });
@@ -52,7 +51,7 @@ export async function listWeaknesses(projectId: string, anonymousId: string | nu
 export async function createSession(projectId: string, roundId: string | undefined, roundType: string, anonymousId: string | null, token?: string | null): Promise<PracticeSession> {
   return apiFetch('/api/v1/sessions', {
     method: 'POST',
-    body: { projectId, roundId, roundType },
+    body: { projectId, ...(roundId ? { roundId } : {}), roundType },
     ...authHeaders(anonymousId, token),
   });
 }
