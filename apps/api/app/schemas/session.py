@@ -28,7 +28,6 @@ class PracticeSessionComplete(APIModel):
 
     duration_seconds: int | None = Field(default=None, ge=0)
     questions_completed: int | None = Field(default=None, ge=0)
-    transcript_summary: str | None = None
 
 
 class PracticeSessionResponse(APIModel):
