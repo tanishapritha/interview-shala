@@ -4,11 +4,11 @@ import styles from './Input.module.scss';
 
 type SharedProps = {
   label: string;
-  hint?: string;
-  error?: string;
-  optional?: boolean;
-  className?: string;
-  id?: string;
+  hint?: string | undefined;
+  error?: string | undefined;
+  optional?: boolean | undefined;
+  className?: string | undefined;
+  id?: string | undefined;
 };
 
 export type InputProps = SharedProps &
@@ -58,7 +58,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   { label, hint, error, optional, className, id, as: _as, ...props },
   ref,
 ) {
-  const inputId = id ?? props.name ?? label.toLowerCase().replace(/\s+/g, '-');
+  const inputId = id ?? props.name ?? label.toLowerCase().replace(/\\s+/g, '-');
   const describedBy = error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined;
 
   return (
@@ -86,7 +86,7 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(function 
   { label, hint, error, optional, className, id, as: _as, ...props },
   ref,
 ) {
-  const inputId = id ?? props.name ?? label.toLowerCase().replace(/\s+/g, '-');
+  const inputId = id ?? props.name ?? label.toLowerCase().replace(/\\s+/g, '-');
   const describedBy = error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined;
 
   return (
