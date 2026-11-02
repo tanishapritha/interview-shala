@@ -24,12 +24,10 @@ class PracticeSessionCreate(APIModel):
 
 
 class PracticeSessionComplete(APIModel):
+    """Client-submitted session facts only; evaluation fields are server-owned."""
+
     duration_seconds: int | None = Field(default=None, ge=0)
     questions_completed: int | None = Field(default=None, ge=0)
-    transcript_summary: str | None = None
-    skill_scores: list[SkillScore] | None = None
-    strengths: list[str] | None = None
-    improvements: list[str] | None = None
 
 
 class PracticeSessionResponse(APIModel):

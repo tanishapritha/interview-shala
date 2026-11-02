@@ -21,26 +21,20 @@ export type RequestOptions = {
 };
 
 export async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const headers: Record<string, string> = {
-    Accept: 'application/json',
-  };
+  const headers: Record<string, string> = { Accept: 'application/json' };
 
-  if (options.body !== undefined) {
-    headers['Content-Type'] = 'application/json';
-  }
-  if (options.token) {
-    headers.Authorization = `Bearer ${options.token}`;
-  }
-  if (options.anonymousId) {
-    headers['X-Anonymous-Session'] = options.anonymousId;
-  }
+  if (options.body !== undefined) headers['Content-Type'] = 'application/json';
+  if (options.token) headers.Authorization = `Bearer ${options.token}`;
+  if (options.anonymousId) headers['X-Anonymous-Session'] = options.anonymousId;
 
-  const response = await fetch(`${API_BASE}${path}`, {
+  const requestInit: RequestInit = {
     method: options.method ?? (options.body !== undefined ? 'POST' : 'GET'),
     headers,
-    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
-    signal: options.signal,
-  });
+  };
+  if (options.body !== undefined) requestInit.body = JSON.stringify(options.body);
+  if (options.signal !== undefined) requestInit.signal = options.signal;
+
+  const response = await fetch(`${API_BASE}${path}`, requestInit);
 
   if (!response.ok) {
     let details: unknown;
@@ -59,9 +53,6 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
     throw new ApiError(message, response.status, details);
   }
 
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
+  if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
 }
