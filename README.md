@@ -8,11 +8,12 @@ The repository currently contains:
 - A React + Vite frontend with Clerk sign-in and an authenticated preparation-plan entry point.
 - A FastAPI backend with Clerk JWT verification, candidate user records, authenticated project ownership, preparation plans, practice-session records and LiveKit token issuance.
 - A separate LiveKit Agents worker using Deepgram STT, OpenRouter-compatible LLM inference, Cartesia TTS, and Silero VAD. The worker persists final transcript turns through private, shared-secret-authenticated API endpoints.
+- An authenticated frontend voice room with server-issued LiveKit participant tokens, microphone controls, remote interviewer audio playback, session timer, and explicit session completion.
 - PostgreSQL models and Alembic migrations, including normalized knowledge concepts, project knowledge maps, candidate skill profiles, ordered transcript segments, and evidence records.
 - A rule-based preparation planner with optional LLM enhancement.
 - Authenticated transcript segment persistence and retrieval for owned practice sessions, with sequence ordering and retry-safe writes.
 
-**Important:** the worker implementation is now present in `apps/worker`, but it must be deployed and configured with LiveKit, Deepgram, Cartesia, OpenRouter, and the matching API worker secret before live interviews can run. The frontend does not yet provide a complete end-to-end voice room experience. Sessions are still saved without an assessment score until a trusted evaluator is connected. Browser-supplied transcript segments are unverified source material and do not count as evidence.
+**Important:** the worker implementation is now present in `apps/worker`, but it must be deployed and configured with LiveKit, Deepgram, Cartesia, OpenRouter, and the matching API worker secret before live interviews can run. The authenticated preparation dashboard can now create a practice session, request a participant token, and join a LiveKit voice room. External provider credentials and worker deployment are still required for a working interviewer conversation. Sessions are still saved without an assessment score until a trusted evaluator is connected. Browser-supplied transcript segments are unverified source material and do not count as evidence.
 
 ## Requirements
 
