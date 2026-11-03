@@ -7,10 +7,16 @@ import {
   UserButton,
   useAuth,
 } from '@clerk/clerk-react';
-import { getCurrentUser, migrateAnonymousSession, quickStart } from '@/services/projects';
-import { useSessionStore } from '@/stores/sessionStore';
 import InterviewRoom from '@/components/InterviewRoom';
-import { completeSession, createSession, getLiveKitToken } from '@/services/projects';
+import {
+  completeSession,
+  createSession,
+  getCurrentUser,
+  getLiveKitToken,
+  migrateAnonymousSession,
+  quickStart,
+} from '@/services/projects';
+import { useSessionStore } from '@/stores/sessionStore';
 import type { LiveKitTokenResponse, PreparationPlan, PreparationRound } from '@/types';
 
 export default function App() {
@@ -185,7 +191,29 @@ function AuthenticatedApp() {
   }
 
   if (project && plan) {
-    return <PreparationDashboard company={project.company} role={project.role} plan={plan} onStartOver={startOver} />;
+    if (activeRoom) {
+      return (
+        <InterviewRoom
+          token={activeRoom.token}
+          serverUrl={activeRoom.livekitUrl}
+          sessionId={activeRoom.sessionId}
+          company={project.company}
+          role={project.role}
+          roundName={activeRoom.roundName}
+          onEnd={endPractice}
+        />
+      );
+    }
+    return (
+      <PreparationDashboard
+        company={project.company}
+        role={project.role}
+        plan={plan}
+        onStartOver={startOver}
+        onStartPractice={startPractice}
+        error={error}
+      />
+    );
   }
 
   return (
@@ -252,12 +280,13 @@ function PreparationDashboard({
           <div className="round-list">
             {plan.rounds.map((round, index) => <article className="round-card" key={round.id}>
               <span className="round-index">{String(index + 1).padStart(2, '0')}</span>
-              <div className="round-content"><h3>{round.name}</h3><p>{round.description}</p><div className="topic-list">{round.topics.map((topic) => <span key={topic}>{topic}</span>)}</div></div>
+              <div className="round-content"><h3>{round.name}</h3><p>{round.description}</p><div className="topic-list">{round.topics.map((topic) => <span key={topic}>{topic}</span>)}</div><button className="round-practice-button" type="button" onClick={() => onStartPractice(round)}>Start voice interview <span aria-hidden>↗</span></button></div>
               <span className="question-count">{round.questionCount} Qs</span>
             </article>)}
           </div>
         </div>
-        {error && <p className="error-message dashboard-error" role="alert">{error}</p>}\n        <aside className="tasks-panel"><p className="eyebrow">START HERE</p><h2>Today's focus</h2><p className="panel-description">A few high-value steps to get moving.</p>
+        {error && <p className="error-message dashboard-error" role="alert">{error}</p>}
+        <aside className="tasks-panel"><p className="eyebrow">START HERE</p><h2>Today's focus</h2><p className="panel-description">A few high-value steps to get moving.</p>
           <div className="task-list">
             {(plan.todayTasks?.length ? plan.todayTasks : plan.tasks).map((task) => <label className="task-item" key={task.id}><input type="checkbox" /><span><strong>{task.title}</strong><small>{task.estimatedMinutes ? task.estimatedMinutes + ' min' : 'Preparation task'}</small></span></label>)}
           </div>
