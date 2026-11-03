@@ -65,6 +65,7 @@ async def entrypoint(ctx: agents.JobContext) -> None:
         next_sequence = int(context["next_sequence"])
         started_at = time.monotonic()
         sequence_lock = asyncio.Lock()
+        pending_writes: set[asyncio.Task[None]] = set()
 
         async def persist(speaker: str, text: str) -> None:
             nonlocal next_sequence
@@ -100,10 +101,24 @@ async def entrypoint(ctx: agents.JobContext) -> None:
             vad=silero.VAD.load(),
         )
 
+        async def persist_safely(speaker: str, text: str) -> None:
+            try:
+                await persist(speaker, text)
+            except Exception:
+                logger.exception(
+                    "Transcript persistence failed",
+                    extra={"session_id": str(session_id), "speaker": speaker},
+                )
+
+        def schedule_persist(speaker: str, text: str) -> None:
+            task = asyncio.create_task(persist_safely(speaker, text))
+            pending_writes.add(task)
+            task.add_done_callback(pending_writes.discard)
+
         @session.on("user_input_transcribed")
         def on_user_input_transcribed(event: UserInputTranscribedEvent) -> None:
             if event.is_final:
-                asyncio.create_task(persist("candidate", event.transcript))
+                schedule_persist("candidate", event.transcript)
 
         @session.on("conversation_item_added")
         def on_conversation_item_added(event: ConversationItemAddedEvent) -> None:
@@ -111,7 +126,7 @@ async def entrypoint(ctx: agents.JobContext) -> None:
             if item.role == "assistant" and not item.interrupted:
                 text = item.text_content
                 if text:
-                    asyncio.create_task(persist("interviewer", text))
+                    schedule_persist("interviewer", text)
 
         @session.on("error")
         def on_session_error(event) -> None:
@@ -137,6 +152,8 @@ async def entrypoint(ctx: agents.JobContext) -> None:
             instructions="Greet the candidate, explain that this is a practice interview, and ask them to introduce themselves."
         )
     finally:
+        if "pending_writes" in locals() and pending_writes:
+            await asyncio.gather(*pending_writes, return_exceptions=True)
         await api.aclose()
 
 
