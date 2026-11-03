@@ -1,11 +1,67 @@
-import { useState, type FormEvent } from 'react';
-import { createAnonymousSession, quickStart } from '@/services/projects';
+import { useEffect, useState, type FormEvent } from 'react';
+import {
+  SignInButton,
+  SignUpButton,
+  SignedIn,
+  SignedOut,
+  UserButton,
+  useAuth,
+} from '@clerk/clerk-react';
+import { getCurrentUser, migrateAnonymousSession, quickStart } from '@/services/projects';
 import { useSessionStore } from '@/stores/sessionStore';
 import type { PreparationPlan } from '@/types';
 
 export default function App() {
+  return (
+    <>
+      <SignedOut><SignedOutLanding /></SignedOut>
+      <SignedIn><AuthenticatedApp /></SignedIn>
+    </>
+  );
+}
+
+function SignedOutLanding() {
+  return (
+    <main className="landing auth-landing">
+      <nav className="topbar" aria-label="Main navigation">
+        <a className="brand" href="/" aria-label="Interview Shala home"><span className="brand-mark">i.</span> interview shala</a>
+        <div className="auth-actions">
+          <SignInButton mode="modal"><button className="text-button" type="button">Sign in</button></SignInButton>
+          <SignUpButton mode="modal"><button className="auth-primary-button" type="button">Create account</button></SignUpButton>
+        </div>
+      </nav>
+      <section className="hero auth-hero">
+        <div className="hero-copy">
+          <p className="eyebrow"><span className="eyebrow-dot" /> PREPARE WITH PURPOSE</p>
+          <h1>Walk into your next interview <em>ready.</em></h1>
+          <p className="hero-description">A voice-first preparation companion that remembers what you know, finds the gaps, and helps you improve. Then face a realistic interview without hints.</p>
+          <div className="trust-row"><span>✳</span> Your preparation, saved to your account.</div>
+        </div>
+        <section className="auth-card" aria-labelledby="auth-heading">
+          <p className="eyebrow">GET STARTED</p>
+          <h2 id="auth-heading">Build your preparation history.</h2>
+          <p>Sign in to create a private candidate profile and keep your preparation, sessions and progress together.</p>
+          <SignUpButton mode="modal"><button className="primary-button" type="button">Create your account <span aria-hidden>↗</span></button></SignUpButton>
+          <SignInButton mode="modal"><button className="auth-secondary-button" type="button">I already have an account</button></SignInButton>
+        </section>
+      </section>
+      <section className="feature-strip" aria-label="How it works">
+        <article><span className="feature-number">01</span><div><h3>One persistent profile</h3><p>Your sessions and preparation history stay connected to your account.</p></div></article>
+        <article><span className="feature-number">02</span><div><h3>Practice and interview</h3><p>Work with an adaptive coach, then test yourself under realistic conditions.</p></div></article>
+        <article><span className="feature-number">03</span><div><h3>Evidence over guesswork</h3><p>Track real attempts, strengths, recurring mistakes and improvement.</p></div></article>
+      </section>
+      <footer className="footer"><span>interview shala</span><span>Thoughtful preparation. Better interviews.</span></footer>
+    </main>
+  );
+}
+
+function AuthenticatedApp() {
+  const { getToken, isLoaded, userId } = useAuth();
   const anonymousId = useSessionStore((state) => state.anonymousId);
-  const setAnonymousId = useSessionStore((state) => state.setAnonymousId);
+  const clearAnonymousId = useSessionStore((state) => state.clearAnonymousId);
+  const [identityReady, setIdentityReady] = useState(false);
+  const [identityError, setIdentityError] = useState('');
+  const [migrationNotice, setMigrationNotice] = useState('');
   const project = useSessionStore((state) => state.project);
   const plan = useSessionStore((state) => state.plan);
   const setProject = useSessionStore((state) => state.setProject);
@@ -16,23 +72,51 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  useEffect(() => {
+    let active = true;
+
+    async function initializeIdentity() {
+      try {
+        const token = await getToken();
+        if (!token) throw new Error('Clerk did not provide a session token.');
+        await getCurrentUser(token);
+
+        if (anonymousId) {
+          try {
+            await migrateAnonymousSession(anonymousId, token);
+            clearAnonymousId();
+          } catch {
+            if (active) {
+              setMigrationNotice('We could not migrate an older anonymous preparation. Your new authenticated work will still be saved to your account.');
+            }
+          }
+        }
+      } catch (cause) {
+        if (active) {
+          setIdentityError(cause instanceof Error ? cause.message : 'Could not initialize your account.');
+        }
+      } finally {
+        if (active) setIdentityReady(true);
+      }
+    }
+
+    if (isLoaded && userId) void initializeIdentity();
+    return () => { active = false; };
+  }, [anonymousId, clearAnonymousId, getToken, isLoaded, userId]);
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
     setError('');
     try {
-      let sessionId = anonymousId;
-      if (!sessionId) {
-        const session = await createAnonymousSession();
-        sessionId = session.anonymousId;
-        setAnonymousId(sessionId);
-      }
+      const token = await getToken();
+      if (!token) throw new Error('Your sign-in session expired. Please sign in again.');
       const result = await quickStart({
         company: company.trim(),
         role: role.trim(),
         ...(jobDescription.trim() ? { jobDescription: jobDescription.trim() } : {}),
         ...(interviewDate ? { interviewDate } : {}),
-      }, sessionId);
+      }, null, token);
       setProject(result.project, result.plan);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Something went wrong. Please try again.');
@@ -45,6 +129,14 @@ export default function App() {
     useSessionStore.getState().clear();
   }
 
+  if (!isLoaded || !identityReady) {
+    return <main className="auth-loading"><span className="brand-mark">i.</span><p>Securing your preparation space…</p></main>;
+  }
+
+  if (identityError) {
+    return <main className="auth-loading"><h1>We couldn't verify your account.</h1><p>{identityError}</p><p>Check the Clerk and API configuration, then reload.</p></main>;
+  }
+
   if (project && plan) {
     return <PreparationDashboard company={project.company} role={project.role} plan={plan} onStartOver={startOver} />;
   }
@@ -53,7 +145,7 @@ export default function App() {
     <main className="landing">
       <nav className="topbar" aria-label="Main navigation">
         <a className="brand" href="/" aria-label="Interview Shala home"><span className="brand-mark">i.</span> interview shala</a>
-        <span className="topbar-note">A calmer way to prepare.</span>
+        <div className="authenticated-nav"><span className="topbar-note">Your preparation space</span><UserButton /></div>
       </nav>
       <section className="hero">
         <div className="hero-copy">
@@ -74,7 +166,8 @@ export default function App() {
           <textarea id="jd" value={jobDescription} onChange={(event) => setJobDescription(event.target.value)} placeholder="Paste the job description to make your plan more relevant..." rows={4} />
           {error && <p className="error-message" role="alert">{error}</p>}
           <button className="primary-button" type="submit" disabled={loading}>{loading ? 'Building your plan…' : 'Build my preparation plan'} <span aria-hidden>↗</span></button>
-          <p className="privacy-note">Your preparation is saved to this browser session. You can create an account later.</p>
+          {migrationNotice && <p className="migration-notice" role="status">{migrationNotice}</p>}
+          <p className="privacy-note">Your preparation is saved to your authenticated account.</p>
         </form>
       </section>
       <section className="feature-strip" aria-label="How it works">
@@ -90,7 +183,7 @@ export default function App() {
 function PreparationDashboard({ company, role, plan, onStartOver }: { company: string; role: string; plan: PreparationPlan; onStartOver: () => void }) {
   return (
     <main className="dashboard">
-      <nav className="topbar"><a className="brand" href="/"><span className="brand-mark">i.</span> interview shala</a><button className="text-button" onClick={onStartOver}>New preparation plan</button></nav>
+      <nav className="topbar"><a className="brand" href="/"><span className="brand-mark">i.</span> interview shala</a><div className="authenticated-nav"><button className="text-button" onClick={onStartOver}>New preparation plan</button><UserButton /></div></nav>
       <section className="dashboard-heading"><p className="eyebrow">YOUR PREPARATION SPACE</p><h1>{role} <span>at</span> {company}</h1><p>{plan.summary}</p></section>
       <section className="dashboard-grid">
         <div className="plan-main">
