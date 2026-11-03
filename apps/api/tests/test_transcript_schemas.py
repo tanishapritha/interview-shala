@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from app.schemas.transcript import TranscriptSegmentCreate
+from app.schemas.transcript import TranscriptIngestResponse, TranscriptSegmentCreate
 
 
 def test_transcript_segment_requires_supported_speaker_and_nonempty_text() -> None:
@@ -32,5 +32,7 @@ def test_transcript_segment_rejects_invalid_client_input(payload: dict) -> None:
         TranscriptSegmentCreate.model_validate(payload)
 
 
-def test_transcript_segments_are_explicitly_client_supplied() -> None:
-    assert TranscriptSegmentCreate.model_fields["speaker"].annotation
+def test_ingest_response_declares_client_supplied_trust_level() -> None:
+    response = TranscriptIngestResponse(accepted=1, already_present=0, segments=[])
+
+    assert response.trust_level == "client_supplied"
