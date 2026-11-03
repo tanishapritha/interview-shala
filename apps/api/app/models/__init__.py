@@ -1,6 +1,13 @@
 """ORM models."""
 
 from app.models.enums import RoundType, SessionStatus, Severity
+from app.models.intelligence import (
+    CandidateEvidence,
+    CandidateSkillProfile,
+    KnowledgeConcept,
+    ProjectKnowledgeConcept,
+    SessionTranscriptSegment,
+)
 from app.models.project import InterviewProject
 from app.models.plan import PreparationPlan, PreparationRound, PreparationTask
 from app.models.provider import ProviderConfig
@@ -11,6 +18,11 @@ from app.models.weakness import Weakness, WeaknessEvidence
 
 __all__ = [
     "User",
+    "KnowledgeConcept",
+    "ProjectKnowledgeConcept",
+    "CandidateSkillProfile",
+    "SessionTranscriptSegment",
+    "CandidateEvidence",
     "InterviewProject",
     "PreparationPlan",
     "PreparationTask",
