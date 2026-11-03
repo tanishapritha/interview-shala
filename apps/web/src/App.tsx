@@ -59,6 +59,8 @@ function AuthenticatedApp() {
   const { getToken, isLoaded, userId } = useAuth();
   const anonymousId = useSessionStore((state) => state.anonymousId);
   const clearAnonymousId = useSessionStore((state) => state.clearAnonymousId);
+  const setOwnerUserId = useSessionStore((state) => state.setOwnerUserId);
+  const clearForIdentityChange = useSessionStore((state) => state.clearForIdentityChange);
   const [identityReady, setIdentityReady] = useState(false);
   const [identityError, setIdentityError] = useState('');
   const [migrationNotice, setMigrationNotice] = useState('');
@@ -79,9 +81,20 @@ function AuthenticatedApp() {
       try {
         const token = await getToken();
         if (!token) throw new Error('Clerk did not provide a session token.');
-        await getCurrentUser(token);
+        const profile = await getCurrentUser(token);
+        const storedOwnerId = useSessionStore.getState().ownerUserId;
+        const storedProject = useSessionStore.getState().project;
 
-        if (anonymousId) {
+        if (storedOwnerId && storedOwnerId !== profile.id) {
+          clearForIdentityChange();
+        } else if (!storedOwnerId && storedProject && !anonymousId) {
+          // Older local state without a verifiable owner must never be shown
+          // to a different signed-in account.
+          clearForIdentityChange();
+        }
+        setOwnerUserId(profile.id);
+
+        if (anonymousId && (!storedOwnerId || storedOwnerId === profile.id)) {
           try {
             await migrateAnonymousSession(anonymousId, token);
             clearAnonymousId();
@@ -102,7 +115,7 @@ function AuthenticatedApp() {
 
     if (isLoaded && userId) void initializeIdentity();
     return () => { active = false; };
-  }, [anonymousId, clearAnonymousId, getToken, isLoaded, userId]);
+  }, [anonymousId, clearAnonymousId, clearForIdentityChange, getToken, isLoaded, setOwnerUserId, userId]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -152,7 +165,7 @@ function AuthenticatedApp() {
           <p className="eyebrow"><span className="eyebrow-dot" /> YOUR NEXT INTERVIEW, WITH A PLAN</p>
           <h1>Walk into your next interview <em>ready.</em></h1>
           <p className="hero-description">Prepare for the company, practise the right rounds, and understand what to improve — one focused step at a time.</p>
-          <div className="trust-row"><span>✳</span> Start free · No account required</div>
+          <div className="trust-row"><span>✳</span> Your preparation is saved to your account.</div>
         </div>
         <form className="quickstart-card" onSubmit={handleSubmit}>
           <div className="card-heading"><div><p className="eyebrow">QUICK START</p><h2>Build your preparation plan</h2></div><span className="step-count">01 / 01</span></div>
