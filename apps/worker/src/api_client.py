@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 from uuid import UUID
 
@@ -30,19 +31,30 @@ class InterviewShalaAPI:
         text: str,
         elapsed_ms: int,
     ) -> None:
-        response = await self._client.post(
-            f"/api/v1/internal/worker/sessions/{session_id}/transcript-segments",
-            json=[
-                {
-                    "sequence_number": sequence_number,
-                    "speaker": speaker,
-                    "text": text,
-                    "elapsed_ms": elapsed_ms,
-                    "is_final": True,
-                }
-            ],
-        )
-        response.raise_for_status()
+        payload = [
+            {
+                "sequence_number": sequence_number,
+                "speaker": speaker,
+                "text": text,
+                "elapsed_ms": elapsed_ms,
+                "is_final": True,
+            }
+        ]
+        for attempt in range(3):
+            try:
+                response = await self._client.post(
+                    f"/api/v1/internal/worker/sessions/{session_id}/transcript-segments",
+                    json=payload,
+                )
+                response.raise_for_status()
+                return
+            except (httpx.TransportError, httpx.HTTPStatusError) as exc:
+                retryable = isinstance(exc, httpx.TransportError) or (
+                    exc.response is not None and exc.response.status_code >= 500
+                )
+                if not retryable or attempt == 2:
+                    raise
+                await asyncio.sleep(0.25 * (2**attempt))
 
     async def aclose(self) -> None:
         await self._client.aclose()
