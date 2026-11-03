@@ -7,11 +7,12 @@ Mobile-first interview preparation, with a role-specific roadmap and a voice-pra
 The repository currently contains:
 - A React + Vite frontend with Clerk sign-in and an authenticated preparation-plan entry point.
 - A FastAPI backend with Clerk JWT verification, candidate user records, authenticated project ownership, preparation plans, practice-session records and LiveKit token issuance.
+- A separate LiveKit Agents worker using Deepgram STT, OpenRouter-compatible LLM inference, Cartesia TTS, and Silero VAD. The worker persists final transcript turns through private, shared-secret-authenticated API endpoints.
 - PostgreSQL models and Alembic migrations, including normalized knowledge concepts, project knowledge maps, candidate skill profiles, ordered transcript segments, and evidence records.
 - A rule-based preparation planner with optional LLM enhancement.
 - Authenticated transcript segment persistence and retrieval for owned practice sessions, with sequence ordering and retry-safe writes.
 
-**Important:** a LiveKit token endpoint is not the same as a running AI interviewer. The real-time agent worker and evidence-backed transcript evaluation are not yet complete. Sessions are currently saved without an assessment score until a trusted evaluator is connected. Client-supplied transcript segments are stored as unverified source material and do not count as evidence. Do not treat a saved session as an evaluated interview.
+**Important:** the worker implementation is now present in `apps/worker`, but it must be deployed and configured with LiveKit, Deepgram, Cartesia, OpenRouter, and the matching API worker secret before live interviews can run. The frontend does not yet provide a complete end-to-end voice room experience. Sessions are still saved without an assessment score until a trusted evaluator is connected. Browser-supplied transcript segments are unverified source material and do not count as evidence.
 
 ## Requirements
 
@@ -64,7 +65,25 @@ See [root .env.example](.env.example) and [API .env.example](apps/api/.env.examp
 
 ## Candidate intelligence data foundation
 
-The database now separates reusable knowledge concepts from project-specific requirements and candidate-specific skill state. Skill proficiency and confidence remain nullable until trusted evidence exists. Transcript segments are ordered per session and evidence records can reference their source segment, session, project, and concept. The current transcript API accepts candidate-supplied segments and labels them `client_supplied`; it supports ordered storage and safe retries, but it is not a trusted LiveKit worker ingestion path. Client-supplied text is not used to generate scores or skill assessments. Verified worker ingestion, evidence extraction, and skill aggregation remain separate milestones.
+The database now separates reusable knowledge concepts from project-specific requirements and candidate-specific skill state. Skill proficiency and confidence remain nullable until trusted evidence exists. Transcript segments are ordered per session and evidence records can reference their source segment, session, project, and concept. The current transcript API accepts candidate-supplied segments and labels them `client_supplied`; it supports ordered storage and safe retries, but it is not a trusted LiveKit worker ingestion path. Client-supplied text is not used to generate scores or skill assessments. Verified LiveKit worker ingestion is implemented; evidence extraction and skill aggregation remain separate milestones.
+
+## LiveKit worker
+
+The worker is a separate Python service. See [apps/worker/README.md](apps/worker/README.md) and [apps/worker/.env.example](apps/worker/.env.example). Configure `WORKER_SHARED_SECRET` in both `apps/api/.env` and the worker's environment with the same long random value. Never expose it to the browser.
+
+Local worker setup:
+
+```powershell
+cd apps/worker
+python -m venv .venv
+.venv\\Scripts\\Activate.ps1
+pip install -e ".[dev]"
+Copy-Item .env.example .env
+# Fill LiveKit, Deepgram, Cartesia, OpenRouter and worker API settings.
+python -m src.agent dev
+```
+
+The worker expects API-generated room names in the form `interview-shala-{session-uuid}`. It loads session context from the private API, starts a single interviewer agent, and persists final STT/assistant turns. A successful CI build does not verify external provider credentials, LiveKit Cloud dispatch, or real microphone/audio quality; perform an end-to-end test after deployment.
 
 ## Database
 
@@ -107,5 +126,6 @@ pnpm build
 - Deploy `apps/web` as a Vite static site.
 - Configure the frontend API origin and backend CORS allowlist.
 - Run Alembic migrations before routing traffic.
-- Configure Clerk and LiveKit credentials only in the deployment secret manager.
+- Configure Clerk, LiveKit, worker shared secret, Deepgram, Cartesia, and OpenRouter credentials only in the deployment secret manager.
+- Deploy `apps/worker` as a separate long-running Python service. The worker must be able to reach the API's private worker endpoints.
 - A deployed API and LiveKit token endpoint do not imply that the AI interviewer worker is deployed.
