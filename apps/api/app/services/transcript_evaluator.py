@@ -68,7 +68,10 @@ def validate_evaluation(raw: Any, segments: list[SessionTranscriptSegment]) -> T
     candidates = {
         str(segment.id): segment
         for segment in segments
-        if segment.speaker == "candidate" and segment.is_final and segment.text.strip()
+        if segment.speaker == "candidate"
+        and segment.is_final
+        and segment.source == "livekit"
+        and segment.text.strip()
     }
     verified_skills: list[VerifiedSkill] = []
     for item in raw["skills"][:20]:
