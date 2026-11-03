@@ -7,7 +7,7 @@ from app.services.transcript_evaluator import EvaluationUnavailable, validate_ev
 
 
 def segment(speaker: str, text: str):
-    return SimpleNamespace(id=uuid4(), speaker=speaker, is_final=True, text=text)
+    return SimpleNamespace(id=uuid4(), speaker=speaker, is_final=True, source="livekit", text=text)
 
 
 def test_accepts_exact_quote_from_candidate_segment():
@@ -105,3 +105,30 @@ def test_ignores_interim_candidate_transcript():
 
     with pytest.raises(EvaluationUnavailable):
         validate_evaluation(raw, [interim])
+
+
+
+def test_rejects_client_supplied_transcript_even_when_quote_matches():
+    client_segment = SimpleNamespace(
+        id=uuid4(),
+        speaker="candidate",
+        is_final=True,
+        source="client",
+        text="I used a list.",
+    )
+    raw = {
+        "skills": [{
+            "name": "Data structures",
+            "score": 80,
+            "confidence": 0.8,
+            "observations": [{
+                "segment_id": str(client_segment.id),
+                "quote": "used a list",
+                "polarity": "positive",
+                "confidence": 0.8,
+            }],
+        }]
+    }
+
+    with pytest.raises(EvaluationUnavailable):
+        validate_evaluation(raw, [client_segment])
