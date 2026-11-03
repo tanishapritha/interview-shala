@@ -60,11 +60,13 @@ class ProjectKnowledgeConcept(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         UUID(as_uuid=True),
         ForeignKey("interview_projects.id", ondelete="CASCADE"),
         nullable=False,
+        index=True,
     )
     concept_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("knowledge_concepts.id", ondelete="CASCADE"),
         nullable=False,
+        index=True,
     )
     importance: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
     target_depth: Mapped[str] = mapped_column(String(32), nullable=False, default="working")
@@ -92,6 +94,7 @@ class CandidateSkillProfile(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
+        index=True,
     )
     skill_key: Mapped[str] = mapped_column(String(160), nullable=False)
     skill_name: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -123,6 +126,7 @@ class SessionTranscriptSegment(UUIDPrimaryKeyMixin, Base):
         UUID(as_uuid=True),
         ForeignKey("practice_sessions.id", ondelete="CASCADE"),
         nullable=False,
+        index=True,
     )
     sequence_number: Mapped[int] = mapped_column(Integer, nullable=False)
     speaker: Mapped[str] = mapped_column(String(32), nullable=False)
@@ -154,26 +158,31 @@ class CandidateEvidence(UUIDPrimaryKeyMixin, Base):
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
+        index=True,
     )
     project_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("interview_projects.id", ondelete="CASCADE"),
         nullable=True,
+        index=True,
     )
     session_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("practice_sessions.id", ondelete="SET NULL"),
         nullable=True,
+        index=True,
     )
     concept_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("knowledge_concepts.id", ondelete="SET NULL"),
         nullable=True,
+        index=True,
     )
     transcript_segment_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("session_transcript_segments.id", ondelete="SET NULL"),
         nullable=True,
+        index=True,
     )
     evidence_type: Mapped[str] = mapped_column(String(64), nullable=False)
     polarity: Mapped[str] = mapped_column(String(16), nullable=False, default="neutral")
