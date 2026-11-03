@@ -7,9 +7,17 @@ import {
   UserButton,
   useAuth,
 } from '@clerk/clerk-react';
-import { getCurrentUser, migrateAnonymousSession, quickStart } from '@/services/projects';
+import InterviewRoom from '@/components/InterviewRoom';
+import {
+  completeSession,
+  createSession,
+  getCurrentUser,
+  getLiveKitToken,
+  migrateAnonymousSession,
+  quickStart,
+} from '@/services/projects';
 import { useSessionStore } from '@/stores/sessionStore';
-import type { PreparationPlan } from '@/types';
+import type { LiveKitTokenResponse, PreparationPlan, PreparationRound } from '@/types';
 
 export default function App() {
   return (
@@ -73,6 +81,7 @@ function AuthenticatedApp() {
   const [interviewDate, setInterviewDate] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [activeRoom, setActiveRoom] = useState<(LiveKitTokenResponse & { roundName: string }) | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -142,6 +151,33 @@ function AuthenticatedApp() {
     }
   }
 
+  async function startPractice(round: PreparationRound) {
+    setError('');
+    try {
+      const token = await getToken();
+      if (!token) throw new Error('Your sign-in session expired. Please sign in again.');
+      if (!project) throw new Error('Create a preparation plan before starting an interview.');
+      const session = await createSession(project.id, round.id, round.roundType, null, token);
+      const credentials = await getLiveKitToken(session.id, null, token);
+      setActiveRoom({ ...credentials, roundName: round.name });
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not start the interview. Please try again.');
+    }
+  }
+
+  async function endPractice(durationSeconds: number) {
+    if (!activeRoom) return;
+    const token = await getToken();
+    if (!token) throw new Error('Your sign-in session expired. Please sign in again.');
+    await completeSession(
+      activeRoom.sessionId,
+      { durationSeconds, questionsCompleted: 0 },
+      null,
+      token,
+    );
+    setActiveRoom(null);
+  }
+
   function startOver() {
     useSessionStore.getState().clear();
   }
@@ -155,7 +191,29 @@ function AuthenticatedApp() {
   }
 
   if (project && plan) {
-    return <PreparationDashboard company={project.company} role={project.role} plan={plan} onStartOver={startOver} />;
+    if (activeRoom) {
+      return (
+        <InterviewRoom
+          token={activeRoom.token}
+          serverUrl={activeRoom.livekitUrl}
+          sessionId={activeRoom.sessionId}
+          company={project.company}
+          role={project.role}
+          roundName={activeRoom.roundName}
+          onEnd={endPractice}
+        />
+      );
+    }
+    return (
+      <PreparationDashboard
+        company={project.company}
+        role={project.role}
+        plan={plan}
+        onStartOver={startOver}
+        onStartPractice={startPractice}
+        error={error}
+      />
+    );
   }
 
   return (
@@ -197,7 +255,21 @@ function AuthenticatedApp() {
   );
 }
 
-function PreparationDashboard({ company, role, plan, onStartOver }: { company: string; role: string; plan: PreparationPlan; onStartOver: () => void }) {
+function PreparationDashboard({
+  company,
+  role,
+  plan,
+  onStartOver,
+  onStartPractice,
+  error,
+}: {
+  company: string;
+  role: string;
+  plan: PreparationPlan;
+  onStartOver: () => void;
+  onStartPractice: (round: PreparationRound) => void;
+  error: string;
+}) {
   return (
     <main className="dashboard">
       <nav className="topbar"><a className="brand" href="/"><span className="brand-mark">i.</span> interview shala</a><div className="authenticated-nav"><button className="text-button" onClick={onStartOver}>New preparation plan</button><UserButton /></div></nav>
@@ -208,16 +280,17 @@ function PreparationDashboard({ company, role, plan, onStartOver }: { company: s
           <div className="round-list">
             {plan.rounds.map((round, index) => <article className="round-card" key={round.id}>
               <span className="round-index">{String(index + 1).padStart(2, '0')}</span>
-              <div className="round-content"><h3>{round.name}</h3><p>{round.description}</p><div className="topic-list">{round.topics.map((topic) => <span key={topic}>{topic}</span>)}</div></div>
+              <div className="round-content"><h3>{round.name}</h3><p>{round.description}</p><div className="topic-list">{round.topics.map((topic) => <span key={topic}>{topic}</span>)}</div><button className="round-practice-button" type="button" onClick={() => onStartPractice(round)}>Start voice interview <span aria-hidden>↗</span></button></div>
               <span className="question-count">{round.questionCount} Qs</span>
             </article>)}
           </div>
         </div>
+        {error && <p className="error-message dashboard-error" role="alert">{error}</p>}
         <aside className="tasks-panel"><p className="eyebrow">START HERE</p><h2>Today's focus</h2><p className="panel-description">A few high-value steps to get moving.</p>
           <div className="task-list">
             {(plan.todayTasks?.length ? plan.todayTasks : plan.tasks).map((task) => <label className="task-item" key={task.id}><input type="checkbox" /><span><strong>{task.title}</strong><small>{task.estimatedMinutes ? task.estimatedMinutes + ' min' : 'Preparation task'}</small></span></label>)}
           </div>
-          <div className="honesty-note"><span>✳</span><p>Voice practice and evidence-based feedback are not connected yet. This plan is generated from your role and the information you provided.</p></div>
+          <div className="honesty-note"><span>✳</span><p>Voice practice is connected to a live interview room. Evidence-based scoring remains unavailable until transcript evaluation is implemented.</p></div>
         </aside>
       </section>
     </main>
