@@ -43,8 +43,8 @@ def test_authenticated_ownership_does_not_include_anonymous_token() -> None:
         anonymous_session_id="another-candidates-anonymous-token",
     )
 
-    statement = select(InterviewProject).where(ownership_filter(context))
-    sql = str(statement.compile(dialect=postgresql.dialect()))
+    predicate = ownership_filter(context)
+    sql = str(predicate.compile(dialect=postgresql.dialect()))
 
     assert "interview_projects.user_id" in sql
     assert "anonymous_session_id" not in sql
