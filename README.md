@@ -7,7 +7,7 @@ Mobile-first interview preparation, with a role-specific roadmap and a voice-pra
 The repository currently contains:
 - A React + Vite frontend with Clerk sign-in and an authenticated preparation-plan entry point.
 - A FastAPI backend with Clerk JWT verification, candidate user records, authenticated project ownership, preparation plans, practice-session records and LiveKit token issuance.
-- PostgreSQL models and Alembic migrations.
+- PostgreSQL models and Alembic migrations, including normalized knowledge concepts, project knowledge maps, candidate skill profiles, ordered transcript segments, and evidence records.
 - A rule-based preparation planner with optional LLM enhancement.
 
 **Important:** a LiveKit token endpoint is not the same as a running AI interviewer. The real-time agent worker and evidence-backed transcript evaluation are not yet complete. Sessions are currently saved without an assessment score until a trusted evaluator is connected. Do not treat a saved session as an evaluated interview.
@@ -60,6 +60,10 @@ Run the frontend and backend in separate terminals.
 ## Environment
 
 See [root .env.example](.env.example) and [API .env.example](apps/api/.env.example). Never commit real credentials. The anonymous session token is currently persisted by the frontend store; use only a strong production secret and treat browser storage as bearer credentials. Moving this to secure HttpOnly cookies remains a production-hardening task.
+
+## Candidate intelligence data foundation
+
+The database now separates reusable knowledge concepts from project-specific requirements and candidate-specific skill state. Skill proficiency and confidence remain nullable until trusted evidence exists. Transcript segments are ordered per session and evidence records can reference their source segment, session, project, and concept. These are persistence primitives; ingestion, evidence extraction, and skill aggregation are separate implementation milestones and are not implied to be active yet.
 
 ## Database
 
