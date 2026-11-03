@@ -85,11 +85,11 @@ async def get_optional_auth(
 async def require_identity(
     auth: Annotated[AuthContext, Depends(get_optional_auth)],
 ) -> AuthContext:
-    """Require either a Clerk user or a valid anonymous session."""
-    if auth.user is None and auth.anonymous_session_id is None:
+    """Require a Clerk-authenticated candidate for application data endpoints."""
+    if auth.user is None or auth.user.clerk_id is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required: provide Bearer token or X-Anonymous-Session",
+            detail="Clerk authentication required",
         )
     return auth
 

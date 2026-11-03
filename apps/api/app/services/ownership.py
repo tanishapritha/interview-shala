@@ -19,8 +19,10 @@ def ownership_filter(auth: AuthContext):
     """SQLAlchemy filter clause matching the caller's owned projects."""
     clauses = []
     if auth.user_id is not None:
+        # An authenticated identity always takes precedence. Never widen its
+        # access by also accepting an anonymous bearer token on the same request.
         clauses.append(InterviewProject.user_id == auth.user_id)
-    if auth.anonymous_session_id is not None:
+    elif auth.anonymous_session_id is not None:
         clauses.append(InterviewProject.anonymous_session_id == auth.anonymous_session_id)
     if not clauses:
         raise HTTPException(

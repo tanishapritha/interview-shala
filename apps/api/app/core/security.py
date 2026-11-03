@@ -8,6 +8,7 @@ import secrets
 import time
 from dataclasses import dataclass
 from typing import Any
+from urllib.parse import urlsplit
 from uuid import UUID
 
 import httpx
@@ -33,14 +34,16 @@ class ClerkClaims:
 
 
 _jwks_client: PyJWKClient | None = None
+_jwks_client_url: str | None = None
 
 
 def _get_jwks_client(settings: Settings) -> PyJWKClient:
-    global _jwks_client
+    global _jwks_client, _jwks_client_url
     if not settings.clerk_jwks_url:
         raise AuthError("Clerk JWKS URL is not configured")
-    if _jwks_client is None:
+    if _jwks_client is None or _jwks_client_url != settings.clerk_jwks_url:
         _jwks_client = PyJWKClient(settings.clerk_jwks_url, cache_keys=True)
+        _jwks_client_url = settings.clerk_jwks_url
     return _jwks_client
 
 
@@ -59,8 +62,12 @@ def verify_clerk_token(token: str, settings: Settings | None = None) -> ClerkCla
         }
         if cfg.clerk_audience:
             decode_kwargs["audience"] = cfg.clerk_audience
-        if cfg.clerk_issuer:
-            decode_kwargs["issuer"] = cfg.clerk_issuer
+        issuer = cfg.clerk_issuer
+        if not issuer and cfg.clerk_jwks_url:
+            jwks_origin = urlsplit(cfg.clerk_jwks_url)
+            issuer = f"{jwks_origin.scheme}://{jwks_origin.netloc}"
+        if issuer:
+            decode_kwargs["issuer"] = issuer
 
         payload = jwt.decode(token, signing_key.key, **decode_kwargs)
     except AuthError:

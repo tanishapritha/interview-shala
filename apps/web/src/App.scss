@@ -1,4 +1,14 @@
 .landing, .dashboard { width: 100%; min-height: 100dvh; color: var(--color-foreground); }
+.configuration-error, .auth-loading { min-height: 100dvh; display: grid; place-content: center; justify-items: center; gap: 12px; padding: 24px; text-align: center; color: var(--color-foreground); }
+.configuration-error p, .auth-loading p { max-width: 520px; color: var(--color-muted); line-height: 1.6; }
+.auth-actions, .authenticated-nav { display: flex; align-items: center; gap: 16px; }
+.auth-primary-button { min-height: 40px; padding: 0 15px; border-radius: 9px; background: var(--color-primary); color: #f7f4ec; font-size: 13px; font-weight: 600; }
+.auth-card { display: flex; flex-direction: column; gap: 15px; padding: 30px; border: 1px solid var(--color-border); border-radius: 22px; background: rgb(255 255 255 / .68); box-shadow: 0 20px 60px rgb(38 60 50 / .08); }
+.auth-card h2 { font: 600 28px/1.15 var(--font-heading); letter-spacing: -.04em; }
+.auth-card > p:not(.eyebrow) { color: var(--color-muted); font-size: 14px; line-height: 1.7; }
+.auth-card .primary-button { width: 100%; }
+.auth-secondary-button { min-height: 46px; border: 1px solid var(--color-border); border-radius: 10px; color: var(--color-primary); font-size: 13px; font-weight: 600; }
+.migration-notice { padding: 10px 12px; border-radius: 9px; background: #f4ead7; color: #6d5735; font-size: 12px; line-height: 1.5; }
 .topbar { width: min(1120px, 100%); margin: 0 auto; padding: 22px 24px; display: flex; justify-content: space-between; align-items: center; gap: 16px; }
 .brand { display: inline-flex; align-items: center; gap: 10px; color: var(--color-primary); text-decoration: none; font-family: var(--font-heading); font-weight: 700; letter-spacing: -.04em; font-size: 19px; }
 .brand-mark { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 10px 10px 10px 3px; background: var(--color-primary); color: var(--color-background); font-family: Georgia, serif; font-size: 19px; }
@@ -65,6 +75,8 @@
 @media (max-width: 760px) {
   .topbar { padding: 17px 18px; }
   .topbar-note { display: none; }
+  .auth-actions { gap: 10px; }
+  .auth-card { padding: 23px 19px; }
   .hero { grid-template-columns: 1fr; padding: 36px 18px 42px; gap: 30px; }
   .hero h1 { margin-top: 16px; font-size: clamp(43px, 12vw, 58px); }
   .hero-description { margin-top: 17px; font-size: 15px; }

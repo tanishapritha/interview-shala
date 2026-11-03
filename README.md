@@ -5,8 +5,8 @@ Mobile-first interview preparation, with a role-specific roadmap and a voice-pra
 ## Current V1 status
 
 The repository currently contains:
-- A React + Vite frontend with an anonymous quick-start and preparation-plan view.
-- A FastAPI backend with anonymous sessions, project ownership, preparation plans, practice-session records and LiveKit token issuance.
+- A React + Vite frontend with Clerk sign-in and an authenticated preparation-plan entry point.
+- A FastAPI backend with Clerk JWT verification, candidate user records, authenticated project ownership, preparation plans, practice-session records and LiveKit token issuance.
 - PostgreSQL models and Alembic migrations.
 - A rule-based preparation planner with optional LLM enhancement.
 
@@ -30,7 +30,7 @@ python -m venv .venv
 # macOS/Linux: source .venv/bin/activate
 pip install -e ".[dev]"
 cp .env.example .env
-# Set DATABASE_URL and ANONYMOUS_SESSION_SECRET
+# Set DATABASE_URL, CLERK_SECRET_KEY and CLERK_JWKS_URL
 alembic upgrade head
 uvicorn app.main:app --reload --port 8000
 ```
@@ -45,7 +45,7 @@ pnpm install
 pnpm dev:web
 ```
 
-Open http://localhost:5173. Vite proxies `/api` to the local API. Alternatively set `VITE_API_URL` to the API origin.
+Open http://localhost:5173. Vite loads frontend environment variables from the repository root and proxies `/api` to the local API. Set `VITE_CLERK_PUBLISHABLE_KEY` in the root `.env`. Alternatively set `VITE_API_URL` to the API origin.
 
 ### 3. Root scripts
 
@@ -90,9 +90,11 @@ pnpm build
 
 ## Authentication
 
-- Anonymous: `POST /api/v1/auth/anonymous`, then send the returned `sessionId` in the `X-Anonymous-Session` header.
-- Authenticated: Clerk Bearer JWT.
-- Migration: `POST /api/v1/auth/migrate` with a Clerk JWT and the anonymous session ID.
+- Frontend: set `VITE_CLERK_PUBLISHABLE_KEY` in the repository-root `.env`.
+- Backend: set `CLERK_SECRET_KEY` and `CLERK_JWKS_URL` in `apps/api/.env`.
+- Authenticated API requests use a Clerk session JWT in the `Authorization: Bearer` header.
+- `GET /api/v1/auth/me` provisions or returns the internal candidate profile for the verified Clerk user.
+- Candidate data endpoints require Clerk authentication. The legacy anonymous session and migration endpoints remain only to support migration of existing anonymous preparation data.
 
 ## Deployment notes
 
