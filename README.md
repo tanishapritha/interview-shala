@@ -65,7 +65,7 @@ See [root .env.example](.env.example) and [API .env.example](apps/api/.env.examp
 
 ## Candidate intelligence data foundation
 
-The database now separates reusable knowledge concepts from project-specific requirements and candidate-specific skill state. Skill proficiency and confidence remain nullable until trusted evidence exists. Transcript segments are ordered per session and evidence records can reference their source segment, session, project, and concept. The current transcript API accepts candidate-supplied segments and labels them `client_supplied`; it supports ordered storage and safe retries, but it is not a trusted LiveKit worker ingestion path. Client-supplied text is not used to generate scores or skill assessments. Verified worker ingestion, evidence extraction, and skill aggregation remain separate milestones.
+The database now separates reusable knowledge concepts from project-specific requirements and candidate-specific skill state. Skill proficiency and confidence remain nullable until trusted evidence exists. Transcript segments are ordered per session and evidence records can reference their source segment, session, project, and concept. The current transcript API accepts candidate-supplied segments and labels them `client_supplied`; it supports ordered storage and safe retries, but it is not a trusted LiveKit worker ingestion path. Client-supplied text is not used to generate scores or skill assessments. Verified LiveKit worker ingestion is implemented; evidence extraction and skill aggregation remain separate milestones.
 
 ## LiveKit worker
 
