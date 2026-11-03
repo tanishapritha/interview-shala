@@ -27,6 +27,7 @@ from app.schemas.session import (
     PracticeSessionResponse,
 )
 from app.services.evaluation import evaluate_session
+from app.services.transcript_evaluator import EvaluationUnavailable, evaluate_transcript
 from app.services.livekit_token import create_session_token
 from app.services.ownership import get_owned_project, get_owned_session, ownership_filter
 from app.services.readiness import recompute_project_metrics
@@ -137,7 +138,46 @@ async def complete_session(
     auth: RequireIdentity,
 ) -> PracticeSessionResponse:
     session = await get_owned_session(db, auth, session_id)
+    if session.status == SessionStatus.COMPLETED:
+        return session_to_response(session)
+
     evaluation = evaluate_session(round_type=session.round_type, payload=body)
+    transcript_result = await db.execute(
+        select(SessionTranscriptSegment)
+        .where(SessionTranscriptSegment.session_id == session_id)
+        .order_by(SessionTranscriptSegment.sequence_number.asc())
+    )
+    transcript_segments = list(transcript_result.scalars().all())
+    project_result = await db.execute(
+        select(InterviewProject).where(InterviewProject.id == session.project_id)
+    )
+    project = project_result.scalar_one()
+    try:
+        assessed = await evaluate_transcript(
+            db,
+            session_id=session.id,
+            project_id=session.project_id,
+            user_id=project.user_id,
+            segments=transcript_segments,
+        )
+        evaluation.score = assessed.score
+        evaluation.strengths = list(assessed.strengths)
+        evaluation.improvements = list(assessed.improvements)
+        evaluation.next_action = assessed.next_action
+        evaluation.skill_scores = [
+            __import__("app.schemas.session", fromlist=["SkillScore"]).SkillScore(
+                skill=skill.name, score=skill.score, max_score=100.0
+            )
+            for skill in assessed.skills
+        ]
+        evaluation.source = "verified_transcript"
+    except EvaluationUnavailable as exc:
+        # Completing a session must not be blocked by provider outages or
+        # insufficient transcript evidence. No score is fabricated.
+        evaluation.next_action = (
+            "Your session was saved without a score because transcript evaluation "
+            f"was unavailable: {str(exc)}"
+        )
 
     session.status = SessionStatus.COMPLETED
     session.completed_at = datetime.now(timezone.utc)
