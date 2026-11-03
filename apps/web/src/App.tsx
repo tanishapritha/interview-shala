@@ -101,11 +101,11 @@ function AuthenticatedApp() {
           } catch {
             // Do not display browser-cached preparation whose ownership could
             // not be established for the signed-in candidate.
-            useSessionStore.getState().clear();
-            clearAnonymousId();
             if (active) {
               setMigrationNotice('An older anonymous preparation could not be securely linked to this account. New preparation will be saved to your account.');
             }
+            useSessionStore.getState().clear();
+            clearAnonymousId();
           }
         }
       } catch (cause) {
