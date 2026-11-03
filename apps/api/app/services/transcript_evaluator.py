@@ -159,7 +159,10 @@ async def evaluate_transcript(
         raise EvaluationUnavailable("OpenRouter is not configured.")
     candidate_segments = [
         segment for segment in segments
-        if segment.speaker == "candidate" and segment.is_final and segment.text.strip()
+        if segment.speaker == "candidate"
+        and segment.is_final
+        and segment.source == "livekit"
+        and segment.text.strip()
     ]
     if not candidate_segments:
         raise EvaluationUnavailable("No final candidate transcript is available.")
