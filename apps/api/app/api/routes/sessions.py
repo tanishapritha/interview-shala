@@ -5,14 +5,21 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import selectinload
 
 from app.core.deps import DbSession, RequireIdentity
 from app.models.enums import SessionStatus
 from app.models.project import InterviewProject
 from app.models.session import PracticeSession, SessionEvent, SkillAssessment
+from app.models.intelligence import SessionTranscriptSegment
+from app.schemas.transcript import (
+    TranscriptIngestResponse,
+    TranscriptSegmentCreate,
+    TranscriptSegmentResponse,
+)
 from app.schemas.session import (
     LiveKitTokenResponse,
     PracticeSessionComplete,
@@ -180,3 +187,109 @@ async def complete_session(
     # Reload with assessments
     session = await get_owned_session(db, auth, session_id)
     return session_to_response(session)
+
+
+
+@router.post(
+    "/{session_id}/transcript-segments",
+    response_model=TranscriptIngestResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def ingest_transcript_segments(
+    session_id: UUID,
+    body: list[TranscriptSegmentCreate],
+    db: DbSession,
+    auth: RequireIdentity,
+) -> TranscriptIngestResponse:
+    """Persist client-supplied transcript segments idempotently.
+
+    These records are explicitly marked as client supplied and must not be
+    treated as trusted evidence or used for scoring until a verified worker
+    ingestion path is implemented.
+    """
+    if not body:
+        raise HTTPException(status_code=422, detail="At least one transcript segment is required")
+    if len(body) > 100:
+        raise HTTPException(status_code=422, detail="A maximum of 100 segments may be sent at once")
+
+    await get_owned_session(db, auth, session_id)
+    accepted = 0
+    already_present = 0
+    persisted: list[SessionTranscriptSegment] = []
+
+    for item in body:
+        values = {
+            "session_id": session_id,
+            "sequence_number": item.sequence_number,
+            "speaker": item.speaker,
+            "text": item.text,
+            "elapsed_ms": item.elapsed_ms,
+            "is_final": item.is_final,
+            "source": "client",
+        }
+        statement = (
+            pg_insert(SessionTranscriptSegment)
+            .values(**values)
+            .on_conflict_do_nothing(
+                constraint="uq_transcript_session_sequence"
+            )
+            .returning(SessionTranscriptSegment.id)
+        )
+        inserted_id = (await db.execute(statement)).scalar_one_or_none()
+        if inserted_id is not None:
+            accepted += 1
+            segment = await db.get(SessionTranscriptSegment, inserted_id)
+            persisted.append(segment)
+            continue
+
+        existing_result = await db.execute(
+            select(SessionTranscriptSegment).where(
+                SessionTranscriptSegment.session_id == session_id,
+                SessionTranscriptSegment.sequence_number == item.sequence_number,
+            )
+        )
+        existing = existing_result.scalar_one()
+        matches = all(
+            getattr(existing, field) == value
+            for field, value in values.items()
+            if field not in {"session_id", "source"}
+        )
+        if not matches:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=(
+                    "A transcript segment already exists at this sequence number "
+                    "with different content"
+                ),
+            )
+        already_present += 1
+        persisted.append(existing)
+
+    persisted.sort(key=lambda segment: segment.sequence_number)
+    return TranscriptIngestResponse(
+        accepted=accepted,
+        already_present=already_present,
+        segments=[TranscriptSegmentResponse.model_validate(item) for item in persisted],
+    )
+
+
+@router.get(
+    "/{session_id}/transcript-segments",
+    response_model=list[TranscriptSegmentResponse],
+)
+async def list_transcript_segments(
+    session_id: UUID,
+    db: DbSession,
+    auth: RequireIdentity,
+) -> list[TranscriptSegmentResponse]:
+    """Return a session transcript in stable sequence order."""
+    await get_owned_session(db, auth, session_id)
+    result = await db.execute(
+        select(SessionTranscriptSegment)
+        .where(SessionTranscriptSegment.session_id == session_id)
+        .order_by(SessionTranscriptSegment.sequence_number.asc())
+    )
+    return [
+        TranscriptSegmentResponse.model_validate(segment)
+        for segment in result.scalars().all()
+    ]
