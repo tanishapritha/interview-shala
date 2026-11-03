@@ -6,11 +6,9 @@ from uuid import uuid4
 
 import pytest
 from fastapi import HTTPException
-from sqlalchemy import select
 from sqlalchemy.dialects import postgresql
 
 from app.core.deps import AuthContext, require_identity
-from app.models.project import InterviewProject
 from app.models.user import User
 from app.services.ownership import ownership_filter
 
