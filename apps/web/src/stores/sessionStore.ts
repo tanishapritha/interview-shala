@@ -8,6 +8,7 @@ type SessionState = {
   project: InterviewProject | null;
   plan: PreparationPlan | null;
   setAnonymousId: (id: string) => void;
+  clearAnonymousId: () => void;
   setProject: (project: InterviewProject, plan?: PreparationPlan | null) => void;
   setPlan: (plan: PreparationPlan) => void;
   clear: () => void;
@@ -21,6 +22,7 @@ export const useSessionStore = create<SessionState>()(
       project: null,
       plan: null,
       setAnonymousId: (id) => set({ anonymousId: id }),
+      clearAnonymousId: () => set({ anonymousId: null }),
       setProject: (project, plan = null) =>
         set({
           project,
