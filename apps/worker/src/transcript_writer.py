@@ -42,7 +42,9 @@ class TranscriptWriter:
             raise RuntimeError("Transcript writer is already closed")
         normalized = text.strip()
         if normalized:
-            self._queue.put_nowait(TranscriptTurn(speaker=speaker, text=normalized, elapsed_ms=elapsed_ms))
+            self._queue.put_nowait(
+                TranscriptTurn(speaker=speaker, text=normalized, elapsed_ms=elapsed_ms)
+            )
 
     async def _run(self) -> None:
         while True:
