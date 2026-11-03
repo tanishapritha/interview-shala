@@ -25,6 +25,7 @@ from app.schemas.session import (
     PracticeSessionComplete,
     PracticeSessionCreate,
     PracticeSessionResponse,
+    SkillScore,
 )
 from app.services.evaluation import evaluate_session
 from app.services.transcript_evaluator import EvaluationUnavailable, evaluate_transcript
@@ -165,9 +166,7 @@ async def complete_session(
         evaluation.improvements = list(assessed.improvements)
         evaluation.next_action = assessed.next_action
         evaluation.skill_scores = [
-            __import__("app.schemas.session", fromlist=["SkillScore"]).SkillScore(
-                skill=skill.name, score=skill.score, max_score=100.0
-            )
+            SkillScore(skill=skill.name, score=skill.score, max_score=100.0)
             for skill in assessed.skills
         ]
         evaluation.source = "verified_transcript"
