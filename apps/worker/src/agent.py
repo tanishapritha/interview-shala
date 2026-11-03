@@ -9,7 +9,12 @@ import time
 from uuid import UUID
 
 from livekit import agents
-from livekit.agents import Agent, AgentSession, ConversationItemAddedEvent, UserInputTranscribedEvent
+from livekit.agents import (
+    Agent,
+    AgentSession,
+    ConversationItemAddedEvent,
+    UserInputTranscribedEvent,
+)
 from livekit.plugins import cartesia, deepgram, openai, silero
 
 from src.api_client import InterviewShalaAPI
@@ -149,7 +154,10 @@ async def entrypoint(ctx: agents.JobContext) -> None:
             agent=Agent(instructions=build_instructions(context)),
         )
         await session.generate_reply(
-            instructions="Greet the candidate, explain that this is a practice interview, and ask them to introduce themselves."
+            instructions=(
+                "Greet the candidate, explain that this is a practice interview, "
+                "and ask them to introduce themselves."
+            )
         )
     finally:
         if "pending_writes" in locals() and pending_writes:
