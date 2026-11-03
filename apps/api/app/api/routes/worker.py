@@ -3,30 +3,43 @@
 from __future__ import annotations
 
 import secrets
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from app.core.config import Settings, get_settings
 from app.core.database import get_db
 from app.models.intelligence import SessionTranscriptSegment
 from app.models.project import InterviewProject
-from app.models.session import PracticeSession
 from app.models.enums import SessionStatus
+from app.models.session import PracticeSession
 
 router = APIRouter(prefix="/internal/worker", tags=["internal-worker"])
 
 
+WorkerDbSession = Annotated[AsyncSession, Depends(get_db)]
+WorkerSettings = Annotated[Settings, Depends(get_settings)]
+
+
 async def require_worker_secret(
-    x_worker_secret: str | None = Header(default=None),
-    settings: Settings = Depends(get_settings),
+    x_worker_secret: Annotated[str | None, Header(alias="X-Worker-Secret")] = None,
+    settings: WorkerSettings = None,
 ) -> None:
     expected = settings.worker_shared_secret
-    if not expected or not x_worker_secret or not secrets.compare_digest(x_worker_secret, expected):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Worker authentication failed")
+    if (
+        not expected
+        or not x_worker_secret
+        or not secrets.compare_digest(x_worker_secret, expected)
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Worker authentication failed",
+        )
 
 
 class WorkerTranscriptSegment(BaseModel):
@@ -38,7 +51,7 @@ class WorkerTranscriptSegment(BaseModel):
 
 
 @router.get("/sessions/{session_id}", dependencies=[Depends(require_worker_secret)])
-async def get_worker_session(session_id: UUID, db=Depends(get_db)) -> dict:
+async def get_worker_session(session_id: UUID, db: WorkerDbSession) -> dict:
     result = await db.execute(
         select(PracticeSession, InterviewProject)
         .join(InterviewProject, InterviewProject.id == PracticeSession.project_id)
@@ -73,7 +86,7 @@ async def get_worker_session(session_id: UUID, db=Depends(get_db)) -> dict:
 async def persist_worker_transcript(
     session_id: UUID,
     segments: list[WorkerTranscriptSegment],
-    db=Depends(get_db),
+    db: WorkerDbSession,
 ) -> dict:
     if not segments:
         return {"accepted": 0}
