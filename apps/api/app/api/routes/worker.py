@@ -15,6 +15,7 @@ from app.core.database import get_db
 from app.models.intelligence import SessionTranscriptSegment
 from app.models.project import InterviewProject
 from app.models.session import PracticeSession
+from app.models.enums import SessionStatus
 
 router = APIRouter(prefix="/internal/worker", tags=["internal-worker"])
 
@@ -47,6 +48,8 @@ async def get_worker_session(session_id: UUID, db=Depends(get_db)) -> dict:
     if row is None:
         raise HTTPException(status_code=404, detail="Practice session not found")
     session, project = row
+    if session.status in {SessionStatus.COMPLETED, SessionStatus.FAILED}:
+        raise HTTPException(status_code=409, detail="Practice session is no longer active")
     next_sequence = await db.scalar(
         select(func.coalesce(func.max(SessionTranscriptSegment.sequence_number), -1) + 1)
         .where(SessionTranscriptSegment.session_id == session_id)
@@ -79,6 +82,11 @@ async def persist_worker_transcript(
     exists = await db.scalar(select(PracticeSession.id).where(PracticeSession.id == session_id))
     if exists is None:
         raise HTTPException(status_code=404, detail="Practice session not found")
+    session_status = await db.scalar(
+        select(PracticeSession.status).where(PracticeSession.id == session_id)
+    )
+    if session_status in {SessionStatus.COMPLETED, SessionStatus.FAILED}:
+        raise HTTPException(status_code=409, detail="Practice session is no longer active")
 
     accepted = 0
     for segment in segments:
