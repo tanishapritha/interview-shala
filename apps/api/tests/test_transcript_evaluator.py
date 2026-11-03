@@ -88,7 +88,7 @@ def test_rejects_invalid_score_even_with_valid_quote():
 
 
 def test_ignores_interim_candidate_transcript():
-    interim = SimpleNamespace(id=uuid4(), speaker="candidate", is_final=False, text="draft")
+    interim = SimpleNamespace(id=uuid4(), speaker="candidate", is_final=False, source="livekit", text="draft")
     raw = {
         "skills": [{
             "name": "Communication",
