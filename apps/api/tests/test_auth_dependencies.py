@@ -35,7 +35,7 @@ async def test_candidate_data_accepts_clerk_user() -> None:
 
 
 def test_authenticated_ownership_does_not_include_anonymous_token() -> None:
-    user = User(clerk_id="user_test_candidate")
+    user = User(id=uuid4(), clerk_id="user_test_candidate")
     context = AuthContext(
         user=user,
         anonymous_session_id="another-candidates-anonymous-token",
