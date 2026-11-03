@@ -50,6 +50,8 @@ class TranscriptWriter:
             try:
                 if turn is None:
                     return
+                if self._failures:
+                    continue
                 sequence = self._next_sequence
                 try:
                     await self._api.append_transcript(
@@ -68,7 +70,7 @@ class TranscriptWriter:
                             "sequence_number": sequence,
                         },
                     )
-                finally:
+                else:
                     self._next_sequence += 1
             finally:
                 self._queue.task_done()
