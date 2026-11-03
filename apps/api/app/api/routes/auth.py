@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Header, HTTPException, status
 from sqlalchemy import update
 
@@ -9,10 +11,24 @@ from app.core.config import get_settings
 from app.core.deps import DbSession, RequireUser
 from app.core.security import AuthError, create_anonymous_session_id, verify_anonymous_session_id
 from app.models.project import InterviewProject
-from app.schemas.auth import AnonymousSessionResponse, MigrateAnonymousRequest
+from app.schemas.auth import AnonymousSessionResponse, CurrentUserResponse, MigrateAnonymousRequest
 from app.schemas.common import MessageResponse
 
 router = APIRouter()
+
+
+@router.get("/me", response_model=CurrentUserResponse)
+async def get_current_user(auth: RequireUser) -> CurrentUserResponse:
+    """Return the authenticated candidate profile, creating it on first valid request."""
+    assert auth.user is not None
+    auth.user.last_login_at = datetime.now(timezone.utc)
+    return CurrentUserResponse(
+        id=auth.user.id,
+        email=auth.user.email,
+        display_name=auth.user.display_name,
+        created_at=auth.user.created_at,
+        last_login_at=auth.user.last_login_at,
+    )
 
 
 @router.post("/anonymous", response_model=AnonymousSessionResponse)
