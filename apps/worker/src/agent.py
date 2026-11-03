@@ -7,6 +7,10 @@ import re
 import time
 from uuid import UUID
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from livekit import agents
 from livekit.agents import (
     Agent,
