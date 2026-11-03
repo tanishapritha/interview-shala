@@ -34,7 +34,7 @@ The API's `WORKER_SHARED_SECRET` must match the worker's value. Never expose thi
 
 ## Transcript trust boundary
 
-Only final STT transcripts and committed assistant messages are sent to the private API. The API authenticates the worker using the shared secret and stores these rows with source `livekit`. Browser transcript endpoints remain separately labelled `client` and are not trusted evaluation evidence.
+Only final STT transcripts and committed assistant messages are sent to the private API. A single ordered writer serializes turns and drains its queue before a normal worker shutdown completes. Failed writes are surfaced in worker logs and stop later sequence writes rather than silently creating sequence gaps. The API authenticates the worker using the shared secret, treats exact retries as idempotent, and rejects conflicting content at an existing sequence number. Browser transcript endpoints remain separately labelled `client` and are not trusted evaluation evidence.
 
 This worker does not calculate scores or update skill profiles. Evidence extraction and rubric-based evaluation are later milestones.
 
