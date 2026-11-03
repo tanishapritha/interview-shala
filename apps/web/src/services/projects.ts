@@ -13,6 +13,26 @@ function authHeaders(anonymousId: string | null, token?: string | null) {
   return { anonymousId, ...(token !== undefined ? { token } : {}) };
 }
 
+export interface CurrentUser {
+  id: string;
+  email: string | null;
+  displayName: string | null;
+  createdAt: string;
+  lastLoginAt: string | null;
+}
+
+export async function getCurrentUser(token: string): Promise<CurrentUser> {
+  return apiFetch('/api/v1/auth/me', { token });
+}
+
+export async function migrateAnonymousSession(anonymousId: string, token: string): Promise<void> {
+  await apiFetch('/api/v1/auth/migrate', {
+    method: 'POST',
+    body: { anonymousSessionId: anonymousId },
+    token,
+  });
+}
+
 export async function createAnonymousSession(): Promise<{ anonymousId: string }> {
   const data = await apiFetch<{ sessionId: string }>('/api/v1/auth/anonymous', {
     method: 'POST',
