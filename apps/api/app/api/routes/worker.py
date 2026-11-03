@@ -102,6 +102,7 @@ async def persist_worker_transcript(
         raise HTTPException(status_code=409, detail="Practice session is no longer active")
 
     accepted = 0
+    already_present = 0
     for segment in segments:
         if segment.speaker not in {"candidate", "interviewer"}:
             raise HTTPException(status_code=422, detail="Unsupported transcript speaker")
@@ -120,5 +121,34 @@ async def persist_worker_transcript(
             .returning(SessionTranscriptSegment.id)
         )
         inserted = (await db.execute(statement)).scalar_one_or_none()
-        accepted += int(inserted is not None)
-    return {"accepted": accepted, "submitted": len(segments)}
+        if inserted is not None:
+            accepted += 1
+            continue
+
+        existing_result = await db.execute(
+            select(SessionTranscriptSegment).where(
+                SessionTranscriptSegment.session_id == session_id,
+                SessionTranscriptSegment.sequence_number == segment.sequence_number,
+            )
+        )
+        existing = existing_result.scalar_one()
+        if (
+            existing.speaker != segment.speaker
+            or existing.text != segment.text
+            or existing.elapsed_ms != segment.elapsed_ms
+            or existing.is_final != segment.is_final
+            or existing.source != "livekit"
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=(
+                    "A transcript segment already exists at this sequence number "
+                    "with different content"
+                ),
+            )
+        already_present += 1
+    return {
+        "accepted": accepted,
+        "already_present": already_present,
+        "submitted": len(segments),
+    }

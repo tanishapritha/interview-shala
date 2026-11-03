@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import re
 import time
@@ -19,6 +18,7 @@ from livekit.plugins import cartesia, deepgram, openai, silero
 
 from src.api_client import InterviewShalaAPI
 from src.settings import get_settings
+from src.transcript_writer import TranscriptWriter
 
 logger = logging.getLogger("interview_shala.worker")
 ROOM_PATTERN = re.compile(r"^interview-shala-([0-9a-fA-F-]{36})$")
@@ -67,27 +67,16 @@ async def entrypoint(ctx: agents.JobContext) -> None:
 
     try:
         context = await api.get_session(session_id)
-        next_sequence = int(context["next_sequence"])
+        writer = TranscriptWriter(
+            api,
+            session_id,
+            first_sequence=int(context["next_sequence"]),
+        )
         started_at = time.monotonic()
-        sequence_lock = asyncio.Lock()
-        pending_writes: set[asyncio.Task[None]] = set()
 
-        async def persist(speaker: str, text: str) -> None:
-            nonlocal next_sequence
-            normalized = text.strip()
-            if not normalized:
-                return
-            async with sequence_lock:
-                sequence = next_sequence
-                next_sequence += 1
-                elapsed_ms = max(0, int((time.monotonic() - started_at) * 1000))
-                await api.append_transcript(
-                    session_id,
-                    sequence_number=sequence,
-                    speaker=speaker,
-                    text=normalized,
-                    elapsed_ms=elapsed_ms,
-                )
+        def enqueue_transcript(speaker: str, text: str) -> None:
+            elapsed_ms = max(0, int((time.monotonic() - started_at) * 1000))
+            writer.submit(speaker, text, elapsed_ms=elapsed_ms)
 
         session = AgentSession(
             stt=deepgram.STT(
@@ -106,24 +95,10 @@ async def entrypoint(ctx: agents.JobContext) -> None:
             vad=silero.VAD.load(),
         )
 
-        async def persist_safely(speaker: str, text: str) -> None:
-            try:
-                await persist(speaker, text)
-            except Exception:
-                logger.exception(
-                    "Transcript persistence failed",
-                    extra={"session_id": str(session_id), "speaker": speaker},
-                )
-
-        def schedule_persist(speaker: str, text: str) -> None:
-            task = asyncio.create_task(persist_safely(speaker, text))
-            pending_writes.add(task)
-            task.add_done_callback(pending_writes.discard)
-
         @session.on("user_input_transcribed")
         def on_user_input_transcribed(event: UserInputTranscribedEvent) -> None:
             if event.is_final:
-                schedule_persist("candidate", event.transcript)
+                enqueue_transcript("candidate", event.transcript)
 
         @session.on("conversation_item_added")
         def on_conversation_item_added(event: ConversationItemAddedEvent) -> None:
@@ -131,7 +106,7 @@ async def entrypoint(ctx: agents.JobContext) -> None:
             if item.role == "assistant" and not item.interrupted:
                 text = item.text_content
                 if text:
-                    schedule_persist("interviewer", text)
+                    enqueue_transcript("interviewer", text)
 
         @session.on("error")
         def on_session_error(event) -> None:
@@ -160,8 +135,14 @@ async def entrypoint(ctx: agents.JobContext) -> None:
             )
         )
     finally:
-        if "pending_writes" in locals() and pending_writes:
-            await asyncio.gather(*pending_writes, return_exceptions=True)
+        if "writer" in locals():
+            try:
+                await writer.close()
+            except Exception:
+                logger.exception(
+                    "Transcript queue did not drain cleanly",
+                    extra={"session_id": str(session_id)},
+                )
         await api.aclose()
 
 

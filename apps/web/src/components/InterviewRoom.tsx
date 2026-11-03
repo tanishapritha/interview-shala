@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { LiveKitRoom, RoomAudioRenderer, StartAudio, useConnectionState, useLocalParticipant } from '@livekit/components-react';
+import { LiveKitRoom, RoomAudioRenderer, StartAudio, useConnectionState, useLocalParticipant, useRoomContext } from '@livekit/components-react';
 import { ConnectionState } from 'livekit-client';
 
 type InterviewRoomProps = {
@@ -81,11 +81,21 @@ function RoomControls({
 }: {
   elapsedTime: string;
   ending: boolean;
-  onEnd: () => void;
+  onEnd: () => Promise<void>;
 }) {
+  const room = useRoomContext();
   const connectionState = useConnectionState();
   const { localParticipant, isMicrophoneEnabled } = useLocalParticipant();
   const [micError, setMicError] = useState('');
+
+  async function endInterview() {
+    try {
+      await room.disconnect();
+      await onEnd();
+    } catch (cause) {
+      setMicError(cause instanceof Error ? cause.message : 'Could not disconnect cleanly. Please try again.');
+    }
+  }
 
   async function toggleMicrophone() {
     setMicError('');
@@ -103,7 +113,9 @@ function RoomControls({
       ? 'Connecting to interviewer…'
       : connectionState === ConnectionState.Reconnecting
         ? 'Reconnecting…'
-        : 'Waiting for connection';
+        : connectionState === ConnectionState.Disconnected
+      ? 'Disconnected'
+      : 'Waiting for connection';
 
   return (
     <div className="interview-controls">
@@ -113,7 +125,7 @@ function RoomControls({
         <button className={isMicrophoneEnabled ? 'mic-button' : 'mic-button mic-button--muted'} type="button" onClick={() => void toggleMicrophone()} disabled={!connected} aria-pressed={isMicrophoneEnabled}>
           {isMicrophoneEnabled ? 'Mute microphone' : 'Unmute microphone'}
         </button>
-        <button className="end-interview-button" type="button" onClick={onEnd} disabled={ending || !connected}>
+        <button className="end-interview-button" type="button" onClick={() => void endInterview()} disabled={ending || !connected}>
           {ending ? 'Ending…' : 'End interview'}
         </button>
       </div>
