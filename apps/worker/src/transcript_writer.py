@@ -37,7 +37,7 @@ class TranscriptWriter:
         self._closed = False
         self._task = asyncio.create_task(self._run())
 
-    def submit(self, speaker: str, text: str, *, elapsed_ms: int = 0) -> None,
+    def submit(self, speaker: str, text: str, *, elapsed_ms: int = 0) -> None:
         if self._closed:
             raise RuntimeError("Transcript writer is already closed")
         normalized = text.strip()
