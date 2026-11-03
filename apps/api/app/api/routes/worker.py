@@ -9,14 +9,14 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings, get_settings
 from app.core.database import get_db
+from app.models.enums import SessionStatus
 from app.models.intelligence import SessionTranscriptSegment
 from app.models.project import InterviewProject
-from app.models.enums import SessionStatus
 from app.models.session import PracticeSession
 
 router = APIRouter(prefix="/internal/worker", tags=["internal-worker"])
