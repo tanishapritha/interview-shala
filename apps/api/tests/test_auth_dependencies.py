@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from uuid import uuid4
+
 import pytest
 from fastapi import HTTPException
 from sqlalchemy import select
@@ -26,7 +28,7 @@ async def test_candidate_data_requires_clerk_identity() -> None:
 
 @pytest.mark.asyncio
 async def test_candidate_data_accepts_clerk_user() -> None:
-    user = User(clerk_id="user_test_candidate")
+    user = User(id=uuid4(), clerk_id="user_test_candidate")
     context = AuthContext(user=user)
 
     resolved = await require_identity(context)
