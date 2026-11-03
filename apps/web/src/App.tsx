@@ -99,8 +99,12 @@ function AuthenticatedApp() {
             await migrateAnonymousSession(anonymousId, token);
             clearAnonymousId();
           } catch {
+            // Do not display browser-cached preparation whose ownership could
+            // not be established for the signed-in candidate.
+            useSessionStore.getState().clear();
+            clearAnonymousId();
             if (active) {
-              setMigrationNotice('We could not migrate an older anonymous preparation. Your new authenticated work will still be saved to your account.');
+              setMigrationNotice('An older anonymous preparation could not be securely linked to this account. New preparation will be saved to your account.');
             }
           }
         }
