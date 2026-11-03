@@ -27,8 +27,8 @@ WorkerSettings = Annotated[Settings, Depends(get_settings)]
 
 
 async def require_worker_secret(
+    settings: WorkerSettings,
     x_worker_secret: Annotated[str | None, Header(alias="X-Worker-Secret")] = None,
-    settings: WorkerSettings = None,
 ) -> None:
     expected = settings.worker_shared_secret
     if (
