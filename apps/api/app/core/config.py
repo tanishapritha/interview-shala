@@ -65,6 +65,7 @@ class Settings(BaseSettings):
     livekit_api_key: str | None = None
     livekit_api_secret: str | None = None
     livekit_url: str | None = None
+    worker_shared_secret: str | None = None
 
     groq_api_key: str | None = None
     openrouter_api_key: str | None = None
