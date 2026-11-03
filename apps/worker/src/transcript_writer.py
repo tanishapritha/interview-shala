@@ -16,6 +16,7 @@ logger = logging.getLogger("interview_shala.worker.transcript")
 class TranscriptTurn:
     speaker: str
     text: str
+    elapsed_ms: int
 
 
 class TranscriptWriter:
@@ -36,12 +37,12 @@ class TranscriptWriter:
         self._closed = False
         self._task = asyncio.create_task(self._run())
 
-    def submit(self, speaker: str, text: str) -> None:
+    def submit(self, speaker: str, text: str, *, elapsed_ms: int = 0) -> None,
         if self._closed:
             raise RuntimeError("Transcript writer is already closed")
         normalized = text.strip()
         if normalized:
-            self._queue.put_nowait(TranscriptTurn(speaker=speaker, text=normalized))
+            self._queue.put_nowait(TranscriptTurn(speaker=speaker, text=normalized, elapsed_ms=elapsed_ms))
 
     async def _run(self) -> None:
         while True:
@@ -56,7 +57,7 @@ class TranscriptWriter:
                         sequence_number=sequence,
                         speaker=turn.speaker,
                         text=turn.text,
-                        elapsed_ms=0,
+                        elapsed_ms=turn.elapsed_ms,
                     )
                 except Exception as exc:
                     self._failures.append(exc)
