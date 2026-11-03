@@ -85,7 +85,7 @@ export async function getLiveKitToken(sessionId: string, anonymousId: string | n
 
 export async function completeSession(
   sessionId: string,
-  payload: { durationSeconds: number; transcript?: { role: string; text: string }[] },
+  payload: { durationSeconds: number; questionsCompleted?: number },
   anonymousId: string | null,
   token?: string | null,
 ): Promise<PracticeSession> {
