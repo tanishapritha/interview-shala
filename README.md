@@ -9,8 +9,9 @@ The repository currently contains:
 - A FastAPI backend with Clerk JWT verification, candidate user records, authenticated project ownership, preparation plans, practice-session records and LiveKit token issuance.
 - PostgreSQL models and Alembic migrations, including normalized knowledge concepts, project knowledge maps, candidate skill profiles, ordered transcript segments, and evidence records.
 - A rule-based preparation planner with optional LLM enhancement.
+- Authenticated transcript segment persistence and retrieval for owned practice sessions, with sequence ordering and retry-safe writes.
 
-**Important:** a LiveKit token endpoint is not the same as a running AI interviewer. The real-time agent worker and evidence-backed transcript evaluation are not yet complete. Sessions are currently saved without an assessment score until a trusted evaluator is connected. Do not treat a saved session as an evaluated interview.
+**Important:** a LiveKit token endpoint is not the same as a running AI interviewer. The real-time agent worker and evidence-backed transcript evaluation are not yet complete. Sessions are currently saved without an assessment score until a trusted evaluator is connected. Client-supplied transcript segments are stored as unverified source material and do not count as evidence. Do not treat a saved session as an evaluated interview.
 
 ## Requirements
 
@@ -63,7 +64,7 @@ See [root .env.example](.env.example) and [API .env.example](apps/api/.env.examp
 
 ## Candidate intelligence data foundation
 
-The database now separates reusable knowledge concepts from project-specific requirements and candidate-specific skill state. Skill proficiency and confidence remain nullable until trusted evidence exists. Transcript segments are ordered per session and evidence records can reference their source segment, session, project, and concept. These are persistence primitives; ingestion, evidence extraction, and skill aggregation are separate implementation milestones and are not implied to be active yet.
+The database now separates reusable knowledge concepts from project-specific requirements and candidate-specific skill state. Skill proficiency and confidence remain nullable until trusted evidence exists. Transcript segments are ordered per session and evidence records can reference their source segment, session, project, and concept. The current transcript API accepts candidate-supplied segments and labels them `client_supplied`; it supports ordered storage and safe retries, but it is not a trusted LiveKit worker ingestion path. Client-supplied text is not used to generate scores or skill assessments. Verified worker ingestion, evidence extraction, and skill aggregation remain separate milestones.
 
 ## Database
 
