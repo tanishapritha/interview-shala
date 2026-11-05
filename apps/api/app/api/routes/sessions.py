@@ -70,6 +70,9 @@ async def create_session(
         round_type=body.round_type,
         status=SessionStatus.PENDING,
         livekit_room_name=None,
+        # A brand-new session has no assessments yet. Initialize the collection
+        # so response serialization never triggers an async lazy-load.
+        skill_assessments=[],
     )
     db.add(session)
     await db.flush()
