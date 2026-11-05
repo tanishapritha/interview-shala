@@ -8,9 +8,6 @@ import time
 from uuid import UUID
 
 from dotenv import load_dotenv
-
-load_dotenv()
-
 from livekit import agents
 from livekit.agents import (
     Agent,
@@ -23,6 +20,8 @@ from livekit.plugins import cartesia, deepgram, openai, silero
 from src.api_client import InterviewShalaAPI
 from src.settings import get_settings
 from src.transcript_writer import TranscriptWriter
+
+load_dotenv()
 
 logger = logging.getLogger("interview_shala.worker")
 ROOM_PATTERN = re.compile(r"^interview-shala-([0-9a-fA-F-]{36})$")
